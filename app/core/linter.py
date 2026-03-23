@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
+from app.core.formatter import LineBreaker
+
 DEFAULT_CONFIG = {
     'line_length': 88,
     'indent_size': 4,
@@ -214,6 +216,17 @@ class Linter:
             fixes_applied.append(f'{filepath}: Reduced excessive blank lines')
 
         new_content = '\n'.join(compressed)
+        if new_content and not new_content.endswith('\n') and self.config['final_newline']:
+            new_content += '\n'
+
+        breaker = LineBreaker(
+            max_length=self.config['line_length'],
+            indent_size=self.config['indent_size']
+        )
+        new_content, line_fixes = breaker.fix_long_lines(new_content)
+        for fix in line_fixes:
+            fixes_applied.append(f'{filepath}: {fix}')
+
         if new_content and not new_content.endswith('\n') and self.config['final_newline']:
             new_content += '\n'
 
