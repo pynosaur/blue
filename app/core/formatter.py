@@ -161,7 +161,12 @@ class SmartFormatter:
 
         return line, False
 
-    def _format_node(self, node: ast.AST, indent: str, cont_indent: str) -> Optional[str]:
+    def _format_node(
+        self,
+        node: ast.AST,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         if isinstance(node, ast.Call):
             return self._format_call(node, indent, cont_indent)
         if isinstance(node, ast.Assign):
@@ -176,7 +181,12 @@ class SmartFormatter:
             return self._format_raise(node, indent, cont_indent)
         return None
 
-    def _format_raise(self, node: ast.Raise, indent: str, cont_indent: str) -> Optional[str]:
+    def _format_raise(
+        self,
+        node: ast.Raise,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         if isinstance(node.exc, ast.Call):
             call_result = self._format_call(
                 node.exc, indent, cont_indent
@@ -190,7 +200,12 @@ class SmartFormatter:
                 return result
         return None
 
-    def _format_call(self, node: ast.Call, indent: str, cont_indent: str) -> Optional[str]:
+    def _format_call(
+        self,
+        node: ast.Call,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         if not node.args and not node.keywords:
             return None
 
@@ -235,7 +250,12 @@ class SmartFormatter:
 
         return '\n'.join(lines)
 
-    def _format_assign(self, node: ast.Assign, indent: str, cont_indent: str) -> Optional[str]:
+    def _format_assign(
+        self,
+        node: ast.Assign,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         targets = ' = '.join(ast.unparse(t) for t in node.targets)
         value = node.value
 
@@ -263,7 +283,12 @@ class SmartFormatter:
             return '\n'.join(call_lines)
         return None
 
-    def _format_collection(self, node: ast.AST, indent: str, cont_indent: str) -> Optional[str]:
+    def _format_collection(
+        self,
+        node: ast.AST,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         if isinstance(node, ast.List):
             open_b, close_b = '[', ']'
             elts = node.elts
@@ -287,7 +312,12 @@ class SmartFormatter:
 
         return '\n'.join(lines)
 
-    def _format_dict(self, node: ast.Dict, indent: str, cont_indent: str) -> Optional[str]:
+    def _format_dict(
+        self,
+        node: ast.Dict,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         if not node.keys:
             return None
 
@@ -302,7 +332,12 @@ class SmartFormatter:
 
         return '\n'.join(lines)
 
-    def _format_boolop(self, node: ast.BoolOp, indent: str, cont_indent: str) -> Optional[str]:
+    def _format_boolop(
+        self,
+        node: ast.BoolOp,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         op_str = ' and ' if isinstance(node.op, ast.And) else ' or '
         values = [ast.unparse(v) for v in node.values]
 
@@ -317,7 +352,12 @@ class SmartFormatter:
 
         return '\n'.join(lines)
 
-    def _break_function_call(self, line: str, indent: str, cont_indent: str) -> Optional[str]:
+    def _break_function_call(
+        self,
+        line: str,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         stripped = line.strip()
         match = re.match(r'^(\w+(?:\.\w+)*)\((.*)\)$', stripped, re.DOTALL)
         if not match:
@@ -338,7 +378,12 @@ class SmartFormatter:
 
         return '\n'.join(lines)
 
-    def _break_assignment(self, line: str, indent: str, cont_indent: str) -> Optional[str]:
+    def _break_assignment(
+        self,
+        line: str,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         stripped = line.strip()
         eq_pos = stripped.find(' = ')
         if eq_pos == -1:
@@ -358,7 +403,12 @@ class SmartFormatter:
 
         return None
 
-    def _break_chained_calls(self, line: str, indent: str, cont_indent: str) -> Optional[str]:
+    def _break_chained_calls(
+        self,
+        line: str,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         stripped = line.strip()
         if ').(' not in stripped and ').' not in stripped:
             return None
@@ -392,7 +442,12 @@ class SmartFormatter:
 
         return '\n'.join(lines)
 
-    def _break_list_or_dict(self, line: str, indent: str, cont_indent: str) -> Optional[str]:
+    def _break_list_or_dict(
+        self,
+        line: str,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         stripped = line.strip()
 
         for open_b, close_b in [('[', ']'), ('{', '}')]:
@@ -413,7 +468,12 @@ class SmartFormatter:
 
         return None
 
-    def _break_binary_op(self, line: str, indent: str, cont_indent: str) -> Optional[str]:
+    def _break_binary_op(
+        self,
+        line: str,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         stripped = line.strip()
 
         for op in [' and ', ' or ', ' | ', ' & ', ' + ', ' - ']:
@@ -429,7 +489,12 @@ class SmartFormatter:
 
         return None
 
-    def _break_comparison(self, line: str, indent: str, cont_indent: str) -> Optional[str]:
+    def _break_comparison(
+        self,
+        line: str,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         stripped = line.strip()
 
         for op in [' == ', ' != ', ' >= ', ' <= ', ' > ', ' < ', ' is ', ' in ']:
@@ -440,7 +505,12 @@ class SmartFormatter:
 
         return None
 
-    def _break_at_comma(self, line: str, indent: str, cont_indent: str) -> Optional[str]:
+    def _break_at_comma(
+        self,
+        line: str,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         stripped = line.strip()
         parts = self._smart_split(stripped, ',')
 
@@ -468,7 +538,12 @@ class SmartFormatter:
             return '\n'.join(lines)
         return None
 
-    def _break_string_arg(self, line: str, indent: str, cont_indent: str) -> Optional[str]:
+    def _break_string_arg(
+        self,
+        line: str,
+        indent: str,
+        cont_indent: str,
+    ) -> Optional[str]:
         stripped = line.strip()
         match = re.match(
             r'^(.*?\()(["\'])(.*)\2(\).*?)$',
