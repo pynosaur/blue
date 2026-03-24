@@ -1,0 +1,8 @@
+#!/bin/sh
+if command -v plack > /dev/null 2>&1; then
+    plack .
+    if [ $? -ne 0 ]; then
+        echo "pre-commit: plack found issues. Fix them or commit with --no-verify."
+        exit 1
+    fi
+fi
