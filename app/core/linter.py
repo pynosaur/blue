@@ -298,10 +298,7 @@ def parse_yaml(content: str) -> Dict:
 
 
 def write_default_config(path: str) -> None:
-    config_content = """# plack configuration
-# Reset to defaults with: plack --reset
-
-line_length: 88
+    config_content = """line_length: 88
 indent_size: 4
 max_blank_lines: 2
 trailing_whitespace: true
