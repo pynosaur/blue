@@ -95,7 +95,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print('plack 0.4.0')
+        print('plack 0.5.0')
         return 0
 
     if args.docs:

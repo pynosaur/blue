@@ -43,8 +43,6 @@ class SmartFormatter:
 
     def _is_unfixable(self, line: str) -> bool:
         stripped = line.strip()
-        if stripped.startswith('#'):
-            return True
         if stripped.startswith(('"""', "'''")):
             return True
         if '"""' in stripped or "'''" in stripped:
@@ -110,10 +108,129 @@ class SmartFormatter:
     def _get_indent(self, line: str) -> str:
         return line[:len(line) - len(line.lstrip())]
 
+    def _break_comment(self, line: str) -> Optional[str]:
+        indent = self._get_indent(line)
+        stripped = line.strip()
+        if not stripped.startswith('#'):
+            return None
+        prefix = '# '
+        text = stripped[2:] if stripped.startswith('# ') else stripped[1:]
+        max_text = self.max_length - len(indent) - len(prefix)
+        if max_text <= 10:
+            return None
+        words = text.split()
+        lines = []
+        current = ''
+        for word in words:
+            test = f'{current} {word}'.strip()
+            if len(test) <= max_text:
+                current = test
+            else:
+                if current:
+                    lines.append(f'{indent}{prefix}{current}')
+                current = word
+        if current:
+            lines.append(f'{indent}{prefix}{current}')
+        if len(lines) <= 1:
+            return None
+        return '\n'.join(lines)
+
+    def _break_long_part(
+        self, part: str, indent: str, deep_indent: str,
+        suffix: str,
+    ) -> Optional[List[str]]:
+        """Break a sub-part of a compound condition across lines."""
+        # Handle: x in (a, b, c) or x in [a, b, c]
+        for op in [' in ', ' not in ']:
+            if op in part:
+                lhs, rhs = part.split(op, 1)
+                rhs = rhs.strip()
+                for open_b, close_b in [('(', ')'), ('[', ']')]:
+                    if rhs.startswith(open_b) and rhs.endswith(close_b):
+                        items = self._smart_split(
+                            rhs[1:-1], ','
+                        )
+                        if len(items) >= 2:
+                            lines = []
+                            lines.append(
+                                f'{indent}{lhs.strip()}'
+                                f'{op}{open_b}'
+                            )
+                            for i, item in enumerate(items):
+                                comma = ',' if i < len(items) - 1 else ','
+                                lines.append(
+                                    f'{deep_indent}{item.strip()}{comma}'
+                                )
+                            lines.append(
+                                f'{indent}{close_b}{suffix}'
+                            )
+                            if all(
+                                len(l) <= self.max_length
+                                for l in lines
+                            ):
+                                return lines
+        return None
+
+    def _try_break_compound(self, line: str) -> Optional[str]:
+        indent = self._get_indent(line)
+        cont_indent = indent + ' ' * self.indent_size
+        deep_indent = cont_indent + ' ' * self.indent_size
+        stripped = line.strip()
+        for keyword in ['if ', 'elif ', 'while ']:
+            if stripped.startswith(keyword) and stripped.endswith(':'):
+                condition = stripped[len(keyword):-1]
+                # Try breaking the condition with binary ops
+                for op in [' and ', ' or ']:
+                    parts = self._smart_split(condition, op.strip())
+                    if len(parts) >= 2:
+                        lines = [f'{indent}{keyword}(']
+                        all_fit = True
+                        for i, part in enumerate(parts):
+                            suffix = f' {op.strip()}' if i < len(parts) - 1 else ''
+                            candidate = f'{cont_indent}{part.strip()}{suffix}'
+                            if len(candidate) <= self.max_length:
+                                lines.append(candidate)
+                            else:
+                                # Try sub-breaking: x in (a, b, c)
+                                sub = self._break_long_part(
+                                    part.strip(), cont_indent,
+                                    deep_indent, suffix,
+                                )
+                                if sub:
+                                    lines.extend(sub)
+                                else:
+                                    all_fit = False
+                                    break
+                        if all_fit:
+                            lines.append(f'{indent}):')
+                            result = '\n'.join(lines)
+                            if self._validate(result):
+                                return result
+                # Try breaking at comparisons
+                for op in [' in ', ' not in ', ' is ', ' is not ']:
+                    if op in condition:
+                        parts = condition.split(op, 1)
+                        if len(parts) == 2:
+                            result = (
+                                f'{indent}{keyword}(\n'
+                                f'{cont_indent}{parts[0].strip()}\n'
+                                f'{cont_indent}{op.strip()} {parts[1].strip()}\n'
+                                f'{indent}):'
+                            )
+                            if self._validate(result):
+                                return result
+        return None
+
     def _smart_break(self, line: str, lineno: int) -> Tuple[str, bool]:
         indent = self._get_indent(line)
         cont_indent = indent + ' ' * self.indent_size
         stripped = line.strip()
+
+        if stripped.startswith('#'):
+            result = self._break_comment(line)
+            if result:
+                return result, True
+            return line, False
 
         if self._is_import(line):
             result = self._break_import(line)
@@ -126,6 +243,10 @@ class SmartFormatter:
             if result:
                 return result, True
             return line, False
+
+        compound = self._try_break_compound(line)
+        if compound:
+            return compound, True
 
         try:
             tree = ast.parse(stripped)
@@ -392,6 +513,21 @@ class SmartFormatter:
         target = stripped[:eq_pos]
         value = stripped[eq_pos + 3:]
 
+        # Handle ternary: target = val if cond else other
+        ternary = re.match(
+            r'^(.+?)\s+if\s+(.+?)\s+else\s+(.+)$', value
+        )
+        if ternary:
+            val, cond, other = ternary.groups()
+            result = (
+                f'{indent}{target} = (\n'
+                f'{cont_indent}{val.strip()}\n'
+                f'{cont_indent}if {cond.strip()}\n'
+                f'{cont_indent}else {other.strip()}\n'
+                f'{indent})'
+            )
+            return result
+
         if '(' in value:
             value_result = self._break_function_call(value, '', ' ' * self.indent_size)
             if value_result:
@@ -501,7 +637,10 @@ class SmartFormatter:
             if op in stripped:
                 parts = stripped.split(op, 1)
                 if len(parts) == 2:
-                    return f'{indent}{parts[0].strip()}\n{cont_indent}{op.strip()} {parts[1].strip()}'
+                    return (
+                        f'{indent}{parts[0].strip()}\n'
+                        f'{cont_indent}{op.strip()} {parts[1].strip()}'
+                    )
 
         return None
 
@@ -685,11 +824,25 @@ class SmartFormatter:
         return parts
 
     def _validate(self, code: str) -> bool:
-        try:
-            ast.parse(textwrap.dedent(code))
-            return all(len(line) <= self.max_length for line in code.split('\n'))
-        except SyntaxError:
+        if not all(len(line) <= self.max_length for line in code.split('\n')):
             return False
+        dedented = textwrap.dedent(code)
+        try:
+            ast.parse(dedented)
+            return True
+        except SyntaxError:
+            pass
+        # Try adding a pass body for compound statements
+        lines = dedented.split('\n')
+        last = lines[-1].strip()
+        if last.endswith(':'):
+            patched = dedented + '\n    pass'
+            try:
+                ast.parse(patched)
+                return True
+            except SyntaxError:
+                pass
+        return False
 
 
 class LineBreaker:

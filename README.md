@@ -44,7 +44,7 @@ final_newline: true
 tab_indent: false
 ```
 
-## Error Codes
+## Issue Codes
 
 | Code | Description |
 |------|-------------|
@@ -56,6 +56,7 @@ tab_indent: false
 | I001 | Wrong indentation character |
 | I002 | Indentation not multiple of indent_size |
 | N001 | No newline at end of file |
+| S001 | Syntax error |
 
 ## Options
 
@@ -67,8 +68,9 @@ tab_indent: false
 --no-recursive       Do not recurse into subdirectories
 -l, --line-length N  Override max line length
 --no-color           Disable colored output
--q, --quiet          Only show error count
+-q, --quiet          Only show issue count
 -v, --version        Show version
+--apply              Auto-fix issues in-place
 --docs               Show documentation
 ```
 

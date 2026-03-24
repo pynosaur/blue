@@ -228,7 +228,11 @@ class Linter:
 
         new_content = '\n'.join(fixed)
 
-        if self.config['final_newline'] and new_content and not new_content.endswith('\n'):
+        if (
+            self.config['final_newline'] and
+            new_content and
+            not new_content.endswith('\n')
+        ):
             new_content += '\n'
             fixes_applied.append(f'{filepath}: Added final newline')
 
@@ -250,7 +254,11 @@ class Linter:
             fixes_applied.append(f'{filepath}: Reduced excessive blank lines')
 
         new_content = '\n'.join(compressed)
-        if new_content and not new_content.endswith('\n') and self.config['final_newline']:
+        if (
+            new_content and
+            not new_content.endswith('\n') and
+            self.config['final_newline']
+        ):
             new_content += '\n'
 
         breaker = LineBreaker(
@@ -261,7 +269,11 @@ class Linter:
         for fix in line_fixes:
             fixes_applied.append(f'{filepath}: {fix}')
 
-        if new_content and not new_content.endswith('\n') and self.config['final_newline']:
+        if (
+            new_content and
+            not new_content.endswith('\n') and
+            self.config['final_newline']
+        ):
             new_content += '\n'
 
         if new_content != content:

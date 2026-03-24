@@ -1,8 +1,8 @@
 NAME: plack - Simple Python linter
 
-VERSION: 0.1.0
+VERSION: 0.5.0
 
-DESCRIPTION: A lightweight Python linter with YAML configuration. Checks for common style issues including line length, trailing whitespace, blank lines, and indentation.
+DESCRIPTION: A lightweight Python linter and formatter with YAML configuration. Checks for common style issues including line length, trailing whitespace, blank lines, indentation, and syntax errors. Includes --apply to auto-fix issues.
 
 USAGE: plack [OPTIONS] [PATHS...]
 
@@ -16,6 +16,7 @@ OPTIONS:
   - "--no-color           Disable colored output"
   - "-q, --quiet          Only show issue count"
   - "-v, --version        Show version"
+  - "--apply             Auto-fix issues in-place"
   - "--docs               Show documentation"
 
 CONFIG:
@@ -35,6 +36,7 @@ ISSUE_CODES:
   - "I001  Wrong indentation character (tabs vs spaces)"
   - "I002  Indentation not multiple of indent_size"
   - "N001  No newline at end of file"
+  - "S001  Syntax error"
 
 EXAMPLES:
   - "plack                 Lint current directory"
