@@ -97,10 +97,10 @@ def show_docs():
                 print(f"    {item}")
         print()
 
-    if 'ERROR_CODES' in data:
-        print(f"{CYAN}ERROR CODES{RESET}")
-        if isinstance(data['ERROR_CODES'], list):
-            for code in data['ERROR_CODES']:
+    if 'ISSUE_CODES' in data:
+        print(f"{CYAN}ISSUE CODES{RESET}")
+        if isinstance(data['ISSUE_CODES'], list):
+            for code in data['ISSUE_CODES']:
                 print(f"    {code}")
         print()
 

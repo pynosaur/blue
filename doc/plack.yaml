@@ -14,7 +14,7 @@ OPTIONS:
   - "--no-recursive       Do not recurse into subdirectories"
   - "-l, --line-length N  Override max line length"
   - "--no-color           Disable colored output"
-  - "-q, --quiet          Only show error count"
+  - "-q, --quiet          Only show issue count"
   - "-v, --version        Show version"
   - "--docs               Show documentation"
 
@@ -26,7 +26,7 @@ CONFIG:
   - "final_newline: true  Require newline at end of file"
   - "tab_indent: false    Use tabs instead of spaces"
 
-ERROR_CODES:
+ISSUE_CODES:
   - "E001  File not found"
   - "E002  Cannot read file"
   - "L001  Line too long"
@@ -45,7 +45,7 @@ EXAMPLES:
   - "plack -l 120 .        Override line length to 120"
   - "plack -q .            Quiet mode, show count only"
 
-OUTPUT: Reports lint errors with file:line:col format. Errors (E) in red, warnings (W) in yellow, info in cyan.
+OUTPUT: Reports lint issues with file:line:col format. Issues (E) in red, warnings (W) in yellow, info in cyan.
 
 AUTHOR: Pynosaur
 

@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from app.core.linter import (
-    Linter, load_config, write_default_config, format_errors, DEFAULT_CONFIG
+    Linter, load_config, write_default_config, format_issues, DEFAULT_CONFIG
 )
 from app.utils.doc_reader import show_docs
 
@@ -71,7 +71,7 @@ def main():
     parser.add_argument(
         '-q', '--quiet',
         action='store_true',
-        help='Only show error count'
+        help='Only show issue count'
     )
 
     parser.add_argument(
@@ -170,30 +170,30 @@ def main():
         print(f'\n{GREEN}{total_fixes} fixes applied{RESET}')
         return 0
 
-    all_errors = []
+    all_issues = []
 
     for path in args.paths:
         p = Path(path)
         if p.is_file():
-            all_errors.extend(linter.lint_file(str(p)))
+            all_issues.extend(linter.lint_file(str(p)))
         elif p.is_dir():
-            all_errors.extend(linter.lint_directory(str(p), recursive=recursive))
+            all_issues.extend(linter.lint_directory(str(p), recursive=recursive))
         else:
             print(f'Warning: {path} not found', file=sys.stderr)
 
     if args.quiet:
-        if all_errors:
-            print(f'{len(all_errors)} errors')
+        if all_issues:
+            print(f'{len(all_issues)} issues')
             return 1
         return 0
 
-    if all_errors:
-        output = format_errors(all_errors, color=not args.no_color)
+    if all_issues:
+        output = format_issues(all_issues, color=not args.no_color)
         print(output)
-        print(f'\n{len(all_errors)} errors found')
+        print(f'\n{len(all_issues)} issues found')
         return 1
 
-    print('No errors found')
+    print('No issues found')
     return 0
 
 

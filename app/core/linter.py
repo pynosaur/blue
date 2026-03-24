@@ -16,7 +16,7 @@ DEFAULT_CONFIG = {
 }
 
 
-class LintError:
+class LintIssue:
     def __init__(self, file: str, line: int, col: int, code: str, message: str):
         self.file = file
         self.line = line
@@ -37,12 +37,12 @@ class Linter:
         if config:
             self.config.update(config)
 
-    def lint_file(self, filepath: str) -> List[LintError]:
-        errors = []
+    def lint_file(self, filepath: str) -> List[LintIssue]:
+        issues = []
         path = Path(filepath)
 
         if not path.exists():
-            return [LintError(filepath, 0, 0, 'E001', 'File not found')]
+            return [LintIssue(filepath, 0, 0, 'E001', 'File not found')]
 
         if not path.suffix == '.py':
             return []
@@ -50,49 +50,53 @@ class Linter:
         try:
             content = path.read_text(encoding='utf-8')
         except Exception as e:
-            return [LintError(filepath, 0, 0, 'E002', f'Cannot read file: {e}')]
+            return [LintIssue(filepath, 0, 0, 'E002', f'Cannot read file: {e}')]
 
         lines = content.split('\n')
 
-        errors.extend(self._check_line_length(filepath, lines))
-        errors.extend(self._check_trailing_whitespace(filepath, lines))
-        errors.extend(self._check_blank_lines(filepath, lines))
-        errors.extend(self._check_indentation(filepath, lines))
-        errors.extend(self._check_final_newline(filepath, content))
-        errors.extend(self._check_syntax(filepath, content))
+        issues.extend(self._check_line_length(filepath, lines))
+        issues.extend(self._check_trailing_whitespace(filepath, lines))
+        issues.extend(self._check_blank_lines(filepath, lines))
+        issues.extend(self._check_indentation(filepath, lines))
+        issues.extend(self._check_final_newline(filepath, content))
+        issues.extend(self._check_syntax(filepath, content))
 
-        return sorted(errors, key=lambda e: (e.line, e.col))
+        return sorted(issues, key=lambda e: (e.line, e.col))
 
-    def _check_line_length(self, filepath: str, lines: List[str]) -> List[LintError]:
-        errors = []
+    def _check_line_length(self, filepath: str, lines: List[str]) -> List[LintIssue]:
+        issues = []
         max_len = self.config['line_length']
 
         for i, line in enumerate(lines, 1):
             if len(line) > max_len:
-                errors.append(LintError(
+                issues.append(LintIssue(
                     filepath, i, max_len + 1, 'L001',
                     f'Line too long ({len(line)} > {max_len})'
                 ))
 
-        return errors
+        return issues
 
-    def _check_trailing_whitespace(self, filepath: str, lines: List[str]) -> List[LintError]:
+    def _check_trailing_whitespace(
+        self,
+        filepath: str,
+        lines: List[str],
+    ) -> List[LintIssue]:
         if not self.config['trailing_whitespace']:
             return []
 
-        errors = []
+        issues = []
         for i, line in enumerate(lines, 1):
             stripped = line.rstrip()
             if len(line) != len(stripped) and line:
-                errors.append(LintError(
+                issues.append(LintIssue(
                     filepath, i, len(stripped) + 1, 'W001',
                     'Trailing whitespace'
                 ))
 
-        return errors
+        return issues
 
-    def _check_blank_lines(self, filepath: str, lines: List[str]) -> List[LintError]:
-        errors = []
+    def _check_blank_lines(self, filepath: str, lines: List[str]) -> List[LintIssue]:
+        issues = []
         max_blank = self.config['max_blank_lines']
         blank_count = 0
         blank_start = 0
@@ -104,16 +108,16 @@ class Linter:
                 blank_count += 1
             else:
                 if blank_count > max_blank:
-                    errors.append(LintError(
+                    issues.append(LintIssue(
                         filepath, blank_start, 1, 'B001',
                         f'Too many blank lines ({blank_count} > {max_blank})'
                     ))
                 blank_count = 0
 
-        return errors
+        return issues
 
-    def _check_indentation(self, filepath: str, lines: List[str]) -> List[LintError]:
-        errors = []
+    def _check_indentation(self, filepath: str, lines: List[str]) -> List[LintIssue]:
+        issues = []
         indent_size = self.config['indent_size']
         use_tabs = self.config['tab_indent']
 
@@ -127,45 +131,45 @@ class Linter:
 
             if use_tabs:
                 if ' ' in line[:leading]:
-                    errors.append(LintError(
+                    issues.append(LintIssue(
                         filepath, i, 1, 'I001',
                         'Expected tabs, found spaces'
                     ))
             else:
                 if '\t' in line[:leading]:
-                    errors.append(LintError(
+                    issues.append(LintIssue(
                         filepath, i, 1, 'I001',
                         'Expected spaces, found tabs'
                     ))
                 elif leading % indent_size != 0:
-                    errors.append(LintError(
+                    issues.append(LintIssue(
                         filepath, i, 1, 'I002',
                         f'Indentation not multiple of {indent_size}'
                     ))
 
-        return errors
+        return issues
 
-    def _check_final_newline(self, filepath: str, content: str) -> List[LintError]:
+    def _check_final_newline(self, filepath: str, content: str) -> List[LintIssue]:
         if not self.config['final_newline']:
             return []
 
         if content and not content.endswith('\n'):
             lines = content.split('\n')
-            return [LintError(
+            return [LintIssue(
                 filepath, len(lines), len(lines[-1]) + 1, 'N001',
                 'No newline at end of file'
             )]
 
         return []
 
-    def _check_syntax(self, filepath: str, content: str) -> List[LintError]:
+    def _check_syntax(self, filepath: str, content: str) -> List[LintIssue]:
         try:
             ast.parse(content, filename=filepath)
         except SyntaxError as e:
             line = e.lineno or 1
             col = e.offset or 1
             msg = e.msg if e.msg else 'Syntax error'
-            return [LintError(filepath, line, col, 'S001', msg)]
+            return [LintIssue(filepath, line, col, 'S001', msg)]
         return []
 
     def _in_hidden_dir(self, filepath: Path) -> bool:
@@ -174,20 +178,20 @@ class Linter:
                 return True
         return False
 
-    def lint_directory(self, dirpath: str, recursive: bool = True) -> List[LintError]:
-        errors = []
+    def lint_directory(self, dirpath: str, recursive: bool = True) -> List[LintIssue]:
+        issues = []
         path = Path(dirpath)
 
         if not path.exists():
-            return [LintError(dirpath, 0, 0, 'E001', 'Directory not found')]
+            return [LintIssue(dirpath, 0, 0, 'E001', 'Directory not found')]
 
         pattern = '**/*.py' if recursive else '*.py'
 
         for pyfile in path.glob(pattern):
             if pyfile.is_file() and not self._in_hidden_dir(pyfile):
-                errors.extend(self.lint_file(str(pyfile)))
+                issues.extend(self.lint_file(str(pyfile)))
 
-        return errors
+        return issues
 
     def fix_file(self, filepath: str) -> Tuple[int, List[str]]:
         path = Path(filepath)
@@ -265,7 +269,11 @@ class Linter:
 
         return len(fixes_applied), fixes_applied
 
-    def fix_directory(self, dirpath: str, recursive: bool = True) -> Tuple[int, List[str]]:
+    def fix_directory(
+        self,
+        dirpath: str,
+        recursive: bool = True,
+    ) -> Tuple[int, List[str]]:
         total_fixes = 0
         all_fixes = []
         path = Path(dirpath)
@@ -332,8 +340,8 @@ tab_indent: false
     Path(path).write_text(config_content, encoding='utf-8')
 
 
-def format_errors(errors: List[LintError], color: bool = True) -> str:
-    if not errors:
+def format_issues(issues: List[LintIssue], color: bool = True) -> str:
+    if not issues:
         return ''
 
     RED = '\033[31m' if color else ''
@@ -342,7 +350,7 @@ def format_errors(errors: List[LintError], color: bool = True) -> str:
     RESET = '\033[0m' if color else ''
 
     lines = []
-    for err in errors:
+    for err in issues:
         if err.code.startswith('E'):
             code_color = RED
         elif err.code.startswith('W'):
@@ -350,6 +358,9 @@ def format_errors(errors: List[LintError], color: bool = True) -> str:
         else:
             code_color = CYAN
 
-        lines.append(f"{err.file}:{err.line}:{err.col}: {code_color}{err.code}{RESET} {err.message}")
+        lines.append(
+            f'{err.file}:{err.line}:{err.col}: {code_color}{err.code}{RESET} '
+            f'{err.message}'
+        )
 
     return '\n'.join(lines)
