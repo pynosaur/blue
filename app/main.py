@@ -2,6 +2,10 @@ import argparse
 import sys
 from pathlib import Path
 
+if __name__ == "__main__" and __package__ is None:
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    __package__ = "app"
+
 from app.core.linter import (
     Linter, load_config, write_default_config, format_issues, DEFAULT_CONFIG
 )
