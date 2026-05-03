@@ -1,6 +1,6 @@
 NAME: plack - Simple Python linter
 
-VERSION: 0.6.0
+VERSION: 0.6.1
 
 DESCRIPTION: A lightweight Python linter and formatter with YAML configuration. Checks for common style issues including line length, trailing whitespace, blank lines, indentation, and syntax errors. Includes --apply to auto-fix issues.
 
