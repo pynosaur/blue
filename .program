@@ -1,5 +1,5 @@
-name: plack
-version: 0.7.0
+name: blue
+version: 0.7.1
 author: @spacemany2k38
 description: Simple Python linter with YAML configuration
 type: cli-tool

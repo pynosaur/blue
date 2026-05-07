@@ -13,12 +13,12 @@ from app.utils.doc_reader import show_docs
 
 
 def get_config_path() -> Path:
-    return Path.home() / '.config' / 'plack' / 'plack.yaml'
+    return Path.home() / '.config' / 'blue' / 'blue.yaml'
 
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='plack',
+        prog='blue',
         description='Simple Python linter with YAML configuration'
     )
 
@@ -99,7 +99,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print('plack 0.7.0')
+        print('blue 0.7.1')
         return 0
 
     if args.docs:

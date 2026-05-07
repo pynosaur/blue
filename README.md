@@ -1,39 +1,39 @@
-# plack
+# blue
 
 Simple Python linter with YAML configuration.
 
 ## Install
 
 ```bash
-pget install plack
+pget install blue
 ```
 
 ## Usage
 
 ```bash
 # Lint current directory
-plack
+blue
 
 # Lint specific files or directories
-plack src/ tests/
-plack main.py
+blue src/ tests/
+blue main.py
 
 # Use custom config
-plack -d myconfig.yaml
+blue -d myconfig.yaml
 
 # Reset to default config
-plack --reset
+blue --reset
 
 # Override line length
-plack -l 120 .
+blue -l 120 .
 
 # Quiet mode
-plack -q .
+blue -q .
 ```
 
 ## Configuration
 
-Config file at `~/.config/plack/plack.yaml`:
+Config file at `~/.config/blue/blue.yaml`:
 
 ```yaml
 line_length: 88

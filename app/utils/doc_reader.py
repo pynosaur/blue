@@ -4,9 +4,9 @@ from pathlib import Path
 
 def find_doc_file():
     locations = [
-        Path(__file__).parent.parent.parent / 'doc' / 'plack.yaml',
-        Path.cwd() / 'doc' / 'plack.yaml',
-        Path.home() / '.pget' / 'helpers' / 'plack' / 'doc' / 'plack.yaml',
+        Path(__file__).parent.parent.parent / 'doc' / 'blue.yaml',
+        Path.cwd() / 'doc' / 'blue.yaml',
+        Path.home() / '.pget' / 'helpers' / 'blue' / 'doc' / 'blue.yaml',
     ]
 
     for loc in locations:

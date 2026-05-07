@@ -1,10 +1,10 @@
-NAME: plack - Simple Python linter
+NAME: blue - Simple Python linter
 
-VERSION: 0.7.0
+VERSION: 0.7.1
 
 DESCRIPTION: A lightweight Python linter and formatter with YAML configuration. Checks for common style issues including line length, trailing whitespace, blank lines, indentation, and syntax errors. Includes --apply to auto-fix issues.
 
-USAGE: plack [OPTIONS] [PATHS...]
+USAGE: blue [OPTIONS] [PATHS...]
 
 OPTIONS:
   - "-d, --config PATH    Use custom YAML config file"
@@ -39,13 +39,13 @@ ISSUE_CODES:
   - "S001  Syntax error"
 
 EXAMPLES:
-  - "plack                        # Lint current directory"
-  - "plack src/                   # Lint src directory"
-  - "plack main.py                # Lint single file"
-  - "plack --reset                # Reset to default config"
-  - "plack -d myconfig.yaml       # Use custom config"
-  - "plack -l 120 .               # Override line length to 120"
-  - "plack -q .                   # Quiet mode, show count only"
+  - "blue                        # Lint current directory"
+  - "blue src/                   # Lint src directory"
+  - "blue main.py                # Lint single file"
+  - "blue --reset                # Reset to default config"
+  - "blue -d myconfig.yaml       # Use custom config"
+  - "blue -l 120 .               # Override line length to 120"
+  - "blue -q .                   # Quiet mode, show count only"
 
 OUTPUT: Reports lint issues with file:line:col format. Issues (E) in red, warnings (W) in yellow, info in cyan.
 
@@ -53,4 +53,4 @@ AUTHOR: Pynosaur
 
 DATE: 2026-03-23
 
-NOTES: Config stored at ~/.config/plack/plack.yaml. Use --reset to generate default config file.
+NOTES: Config stored at ~/.config/blue/blue.yaml. Use --reset to generate default config file.

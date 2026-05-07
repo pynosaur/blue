@@ -190,7 +190,7 @@ class TestWriteDefaultConfig(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_write_config(self):
-        path = os.path.join(self.temp_dir, 'plack.yaml')
+        path = os.path.join(self.temp_dir, 'blue.yaml')
         write_default_config(path)
         self.assertTrue(os.path.exists(path))
         with open(path) as f:
