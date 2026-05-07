@@ -57,6 +57,9 @@ tab_indent: false
 | I002 | Indentation not multiple of indent_size |
 | N001 | No newline at end of file |
 | S001 | Syntax error |
+| V001 | Version mismatch vs `.program` |
+| V002 | Hardcoded `print` version in `main.py` |
+| V003 | Missing `__version__` in `app/__init__.py` |
 
 ## Options
 

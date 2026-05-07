@@ -37,7 +37,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
-          echo "asset=${name}-${{ matrix.target }}" >> "$GITHUB_OUTPUT"
+          echo "asset=${name}-${version}-${{ matrix.target }}" >> "$GITHUB_OUTPUT"
 
       - name: Install Nuitka
         run: pip install nuitka ordered-set zstandard

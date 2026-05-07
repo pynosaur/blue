@@ -182,7 +182,7 @@ class Linter:
         self,
         dirpath: str,
     ) -> List[LintIssue]:
-        """Check version consistency across .program, __init__, doc."""
+        """Check version consistency across .program, __init__, doc, main."""
         root = Path(dirpath)
         program_file = root / '.program'
         if not program_file.exists():
@@ -204,8 +204,8 @@ class Linter:
         if not prog_version or not prog_name:
             return []
 
-        versions = {'.program': prog_version}
-        issues = []
+        versions: Dict[str, str] = {'.program': prog_version}
+        issues: List[LintIssue] = []
 
         init_file = root / 'app' / '__init__.py'
         if init_file.exists():
@@ -217,6 +217,12 @@ class Linter:
                 )
                 if m:
                     versions['app/__init__.py'] = m.group(1)
+                else:
+                    issues.append(LintIssue(
+                        str(init_file), 1, 1, 'V003',
+                        'Missing __version__ in app/__init__.py '
+                        '(required when .program is present)',
+                    ))
             except Exception:
                 pass
 
@@ -225,28 +231,48 @@ class Linter:
             try:
                 text = doc_file.read_text(encoding='utf-8')
                 m = re.search(
-                    r'^VERSION:\s*"([^"]+)"',
+                    r'^VERSION:\s*(?:"([^"]+)"|([0-9]+(?:\.[0-9]+)*))\s*$',
                     text,
                     re.MULTILINE,
                 )
                 if m:
                     doc_key = f'doc/{prog_name}.yaml'
-                    versions[doc_key] = m.group(1)
+                    versions[doc_key] = m.group(1) or m.group(2) or ''
             except Exception:
                 pass
 
-        if len(set(versions.values())) <= 1:
-            return []
+        if len(set(versions.values())) > 1:
+            for filepath, version in versions.items():
+                if version != prog_version:
+                    full = str(root / filepath)
+                    issues.append(LintIssue(
+                        full, 1, 1, 'V001',
+                        f'Version mismatch: {version} '
+                        f'(expected {prog_version} '
+                        f'from .program)',
+                    ))
 
-        for filepath, version in versions.items():
-            if version != prog_version:
-                full = str(root / filepath)
-                issues.append(LintIssue(
-                    full, 1, 1, 'V001',
-                    f'Version mismatch: {version} '
-                    f'(expected {prog_version} '
-                    f'from .program)',
-                ))
+        main_py = root / 'app' / 'main.py'
+        if main_py.exists():
+            try:
+                text = main_py.read_text(encoding='utf-8')
+                for m in re.finditer(
+                    r"print\(\s*['\"]([A-Za-z0-9_-]+)\s+(\d+\.\d+\.\d+)['\"]\s*\)",
+                    text,
+                ):
+                    n, v = m.group(1), m.group(2)
+                    if n.lower() == prog_name.lower() and v != prog_version:
+                        line_no = text[:m.start()].count('\n') + 1
+                        issues.append(LintIssue(
+                            str(main_py),
+                            line_no,
+                            1,
+                            'V002',
+                            f'Hardcoded print version {v} does not match '
+                            f'.program ({prog_version}); use __version__',
+                        ))
+            except Exception:
+                pass
 
         return issues
 

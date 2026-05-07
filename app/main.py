@@ -10,6 +10,7 @@ from app.core.linter import (
     Linter, load_config, write_default_config, format_issues, DEFAULT_CONFIG
 )
 from app.utils.doc_reader import show_docs
+from app import __version__
 
 
 def get_config_path() -> Path:
@@ -99,7 +100,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print('blue 0.7.1')
+        print(f'blue {__version__}')
         return 0
 
     if args.docs:
