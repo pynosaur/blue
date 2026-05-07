@@ -322,6 +322,38 @@ class Linter:
 
         return issues
 
+    def _check_website_pages(
+        self,
+        dirpath: str,
+    ) -> List[LintIssue]:
+        """V005: every tool in _data/tools.yml must have pages/<name>.md."""
+        root = Path(dirpath)
+        tools_yml = root / '_data' / 'tools.yml'
+        if not tools_yml.exists():
+            return []
+
+        try:
+            text = tools_yml.read_text(encoding='utf-8')
+        except Exception:
+            return []
+
+        issues: List[LintIssue] = []
+        entries = self._parse_tools_yml(text)
+
+        for entry_name, _, line_no in entries:
+            page = root / 'pages' / f'{entry_name}.md'
+            if not page.exists():
+                issues.append(LintIssue(
+                    str(tools_yml),
+                    line_no,
+                    1,
+                    'V005',
+                    f'Missing documentation page: '
+                    f'pages/{entry_name}.md',
+                ))
+
+        return issues
+
     @staticmethod
     def _parse_tools_yml(text: str) -> List[Tuple[str, str, int]]:
         """Return list of (name, version, line_number) from tools.yml."""
@@ -359,6 +391,7 @@ class Linter:
 
         issues.extend(self._check_version_sync(dirpath))
         issues.extend(self._check_website_versions(dirpath))
+        issues.extend(self._check_website_pages(dirpath))
 
         pattern = '**/*.py' if recursive else '*.py'
 
