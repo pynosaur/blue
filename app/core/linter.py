@@ -178,12 +178,86 @@ class Linter:
                 return True
         return False
 
+    def _check_version_sync(
+        self,
+        dirpath: str,
+    ) -> List[LintIssue]:
+        """Check version consistency across .program, __init__, doc."""
+        root = Path(dirpath)
+        program_file = root / '.program'
+        if not program_file.exists():
+            return []
+
+        try:
+            prog_text = program_file.read_text(encoding='utf-8')
+        except Exception:
+            return []
+
+        prog_version = None
+        prog_name = None
+        for line in prog_text.split('\n'):
+            if line.startswith('version:'):
+                prog_version = line.split(':', 1)[1].strip()
+            if line.startswith('name:'):
+                prog_name = line.split(':', 1)[1].strip()
+
+        if not prog_version or not prog_name:
+            return []
+
+        versions = {'.program': prog_version}
+        issues = []
+
+        init_file = root / 'app' / '__init__.py'
+        if init_file.exists():
+            try:
+                text = init_file.read_text(encoding='utf-8')
+                m = re.search(
+                    r'__version__\s*=\s*["\']([^"\']+)["\']',
+                    text,
+                )
+                if m:
+                    versions['app/__init__.py'] = m.group(1)
+            except Exception:
+                pass
+
+        doc_file = root / 'doc' / f'{prog_name}.yaml'
+        if doc_file.exists():
+            try:
+                text = doc_file.read_text(encoding='utf-8')
+                m = re.search(
+                    r'^VERSION:\s*"([^"]+)"',
+                    text,
+                    re.MULTILINE,
+                )
+                if m:
+                    doc_key = f'doc/{prog_name}.yaml'
+                    versions[doc_key] = m.group(1)
+            except Exception:
+                pass
+
+        if len(set(versions.values())) <= 1:
+            return []
+
+        for filepath, version in versions.items():
+            if version != prog_version:
+                full = str(root / filepath)
+                issues.append(LintIssue(
+                    full, 1, 1, 'V001',
+                    f'Version mismatch: {version} '
+                    f'(expected {prog_version} '
+                    f'from .program)',
+                ))
+
+        return issues
+
     def lint_directory(self, dirpath: str, recursive: bool = True) -> List[LintIssue]:
         issues = []
         path = Path(dirpath)
 
         if not path.exists():
             return [LintIssue(dirpath, 0, 0, 'E001', 'Directory not found')]
+
+        issues.extend(self._check_version_sync(dirpath))
 
         pattern = '**/*.py' if recursive else '*.py'
 
