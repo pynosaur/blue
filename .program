@@ -1,5 +1,5 @@
 name: blue
-version: 0.10.0
+version: 0.10.1
 author: @spacemany2k38
 description: Simple Python linter with YAML configuration
 type: cli-tool

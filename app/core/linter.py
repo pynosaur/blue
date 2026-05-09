@@ -276,112 +276,6 @@ class Linter:
 
         return issues
 
-    def _check_website_versions(
-        self,
-        dirpath: str,
-    ) -> List[LintIssue]:
-        """V004: check _data/tools.yml versions against ../<tool>/.program."""
-        root = Path(dirpath)
-        tools_yml = root / '_data' / 'tools.yml'
-        if not tools_yml.exists():
-            return []
-
-        try:
-            text = tools_yml.read_text(encoding='utf-8')
-        except Exception:
-            return []
-
-        issues: List[LintIssue] = []
-        entries = self._parse_tools_yml(text)
-
-        for entry_name, entry_version, line_no in entries:
-            program_file = root.parent / entry_name / '.program'
-            if not program_file.exists():
-                continue
-
-            try:
-                prog_text = program_file.read_text(encoding='utf-8')
-            except Exception:
-                continue
-
-            prog_version = None
-            for line in prog_text.split('\n'):
-                if line.startswith('version:'):
-                    prog_version = line.split(':', 1)[1].strip()
-                    break
-
-            if prog_version and entry_version != prog_version:
-                issues.append(LintIssue(
-                    str(tools_yml),
-                    line_no,
-                    1,
-                    'V004',
-                    f'{entry_name} version {entry_version} '
-                    f'does not match .program ({prog_version})',
-                ))
-
-        return issues
-
-    def _check_website_pages(
-        self,
-        dirpath: str,
-    ) -> List[LintIssue]:
-        """V005: every tool in _data/tools.yml must have pages/<name>.md."""
-        root = Path(dirpath)
-        tools_yml = root / '_data' / 'tools.yml'
-        if not tools_yml.exists():
-            return []
-
-        try:
-            text = tools_yml.read_text(encoding='utf-8')
-        except Exception:
-            return []
-
-        issues: List[LintIssue] = []
-        entries = self._parse_tools_yml(text)
-
-        for entry_name, _, line_no in entries:
-            page = root / 'pages' / f'{entry_name}.md'
-            if not page.exists():
-                issues.append(LintIssue(
-                    str(tools_yml),
-                    line_no,
-                    1,
-                    'V005',
-                    f'Missing documentation page: '
-                    f'pages/{entry_name}.md',
-                ))
-
-        return issues
-
-    @staticmethod
-    def _parse_tools_yml(text: str) -> List[Tuple[str, str, int]]:
-        """Return list of (name, version, line_number) from tools.yml."""
-        entries: List[Tuple[str, str, int]] = []
-        current_name: Optional[str] = None
-        name_line = 0
-
-        for i, line in enumerate(text.split('\n'), 1):
-            stripped = line.strip()
-            m_name = re.match(
-                r'^-?\s*name:\s*(.+)$', stripped,
-            )
-            if m_name:
-                current_name = m_name.group(1).strip()
-                name_line = i
-                continue
-
-            m_ver = re.match(
-                r'^version:\s*"?([^"]+)"?\s*$', stripped,
-            )
-            if m_ver and current_name is not None:
-                entries.append(
-                    (current_name, m_ver.group(1).strip(), name_line)
-                )
-                current_name = None
-
-        return entries
-
     def lint_directory(self, dirpath: str, recursive: bool = True) -> List[LintIssue]:
         issues = []
         path = Path(dirpath)
@@ -390,8 +284,6 @@ class Linter:
             return [LintIssue(dirpath, 0, 0, 'E001', 'Directory not found')]
 
         issues.extend(self._check_version_sync(dirpath))
-        issues.extend(self._check_website_versions(dirpath))
-        issues.extend(self._check_website_pages(dirpath))
 
         pattern = '**/*.py' if recursive else '*.py'
 

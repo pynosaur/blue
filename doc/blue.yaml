@@ -1,6 +1,6 @@
 NAME: blue - Simple Python linter
 
-VERSION: 0.10.0
+VERSION: 0.10.1
 
 DESCRIPTION: A lightweight Python linter and formatter with YAML configuration. Checks for common style issues including line length, trailing whitespace, blank lines, indentation, and syntax errors. Includes --apply to auto-fix issues.
 
@@ -39,8 +39,6 @@ ISSUE_CODES:
   - "V001  Version mismatch vs .program (doc or app/__init__.py)"
   - "V002  Hardcoded print version in main.py does not match .program"
   - "V003  Missing __version__ in app/__init__.py when .program exists"
-  - "V004  Website _data/tools.yml version does not match .program"
-  - "V005  Tool listed in _data/tools.yml has no pages/<name>.md"
   - "blue                        # Lint current directory"
   - "blue src/                   # Lint src directory"
   - "blue main.py                # Lint single file"
