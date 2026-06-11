@@ -105,6 +105,48 @@ class TestLinter(unittest.TestCase):
         newline_issues = [e for e in issues if e.code == 'N001']
         self.assertEqual(len(newline_issues), 0)
 
+    def test_multiline_string_content_not_flagged(self):
+        code = (
+            'ART = """\n'
+            ' x\n'
+            '   y  \n'
+            '\n'
+            '\n'
+            '\n'
+            '\n'
+            ' z\n'
+            '"""\n'
+            'x = 1\n'
+        )
+        path = self.write_temp_file(code)
+        issues = self.linter.lint_file(path)
+        codes = {e.code for e in issues}
+        self.assertNotIn('I002', codes)
+        self.assertNotIn('W001', codes)
+        self.assertNotIn('B001', codes)
+
+    def test_fix_preserves_multiline_string_content(self):
+        body = ' x\n   y  \n\n\n\n\n z\n'
+        code = f'ART = """\n{body}"""\nx = 1   \n'
+        path = self.write_temp_file(code)
+        count, fixes = self.linter.fix_file(path)
+        result = Path(path).read_text()
+        self.assertIn(body, result)
+        self.assertIn('x = 1\n', result)
+
+    def test_build_dirs_skipped(self):
+        build_dir = Path(self.temp_dir) / 'main.build'
+        build_dir.mkdir()
+        (build_dir / 'junk.py').write_text('x = 1   ')
+        bazel_dir = Path(self.temp_dir) / 'bazel-out'
+        bazel_dir.mkdir()
+        (bazel_dir / 'junk.py').write_text('x = 1   ')
+        (Path(self.temp_dir) / 'real.py').write_text('y = 2   \n')
+        issues = self.linter.lint_directory(self.temp_dir)
+        files = {e.file for e in issues}
+        self.assertEqual(len(files), 1)
+        self.assertTrue(list(files)[0].endswith('real.py'))
+
     def test_file_not_found(self):
         issues = self.linter.lint_file('/nonexistent/file.py')
         self.assertEqual(len(issues), 1)

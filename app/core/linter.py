@@ -1,8 +1,10 @@
 import ast
+import io
 import os
 import re
+import tokenize
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Set, Tuple, Optional
 
 from app.core.formatter import LineBreaker
 
@@ -14,6 +16,17 @@ DEFAULT_CONFIG = {
     'final_newline': True,
     'tab_indent': False,
 }
+
+# Build artifact directories that should never be linted. These appear
+# locally after Nuitka/Bazel builds and are not part of the source tree.
+SKIP_DIR_NAMES = {
+    'main.build',
+    'main.dist',
+    'main.onefile-build',
+    '__pycache__',
+    'node_modules',
+}
+SKIP_DIR_PREFIXES = ('bazel-',)
 
 
 class LintIssue:
@@ -53,15 +66,37 @@ class Linter:
             return [LintIssue(filepath, 0, 0, 'E002', f'Cannot read file: {e}')]
 
         lines = content.split('\n')
+        protected = self._protected_lines(content)
 
         issues.extend(self._check_line_length(filepath, lines))
-        issues.extend(self._check_trailing_whitespace(filepath, lines))
-        issues.extend(self._check_blank_lines(filepath, lines))
-        issues.extend(self._check_indentation(filepath, lines))
+        issues.extend(
+            self._check_trailing_whitespace(filepath, lines, protected),
+        )
+        issues.extend(self._check_blank_lines(filepath, lines, protected))
+        issues.extend(self._check_indentation(filepath, lines, protected))
         issues.extend(self._check_final_newline(filepath, content))
         issues.extend(self._check_syntax(filepath, content))
 
         return sorted(issues, key=lambda e: (e.line, e.col))
+
+    def _protected_lines(self, content: str) -> Set[int]:
+        """Line numbers (1-based) that are inside multiline string
+        literals. Those lines are data, not code: indentation, trailing
+        whitespace, and blank-line rules must not flag or rewrite them
+        (e.g. ASCII art, embedded templates)."""
+        protected: Set[int] = set()
+        string_types = {tokenize.STRING}
+        fstring_middle = getattr(tokenize, 'FSTRING_MIDDLE', None)
+        if fstring_middle is not None:
+            string_types.add(fstring_middle)
+        try:
+            tokens = tokenize.generate_tokens(io.StringIO(content).readline)
+            for tok in tokens:
+                if tok.type in string_types and tok.end[0] > tok.start[0]:
+                    protected.update(range(tok.start[0] + 1, tok.end[0] + 1))
+        except (tokenize.TokenError, IndentationError, SyntaxError):
+            pass
+        return protected
 
     def _check_line_length(self, filepath: str, lines: List[str]) -> List[LintIssue]:
         issues = []
@@ -105,12 +140,16 @@ class Linter:
         self,
         filepath: str,
         lines: List[str],
+        protected: Optional[Set[int]] = None,
     ) -> List[LintIssue]:
         if not self.config['trailing_whitespace']:
             return []
 
+        protected = protected or set()
         issues = []
         for i, line in enumerate(lines, 1):
+            if i in protected:
+                continue
             stripped = line.rstrip()
             if len(line) != len(stripped) and line:
                 issues.append(LintIssue(
@@ -120,14 +159,20 @@ class Linter:
 
         return issues
 
-    def _check_blank_lines(self, filepath: str, lines: List[str]) -> List[LintIssue]:
+    def _check_blank_lines(
+        self,
+        filepath: str,
+        lines: List[str],
+        protected: Optional[Set[int]] = None,
+    ) -> List[LintIssue]:
+        protected = protected or set()
         issues = []
         max_blank = self.config['max_blank_lines']
         blank_count = 0
         blank_start = 0
 
         for i, line in enumerate(lines, 1):
-            if not line.strip():
+            if not line.strip() and i not in protected:
                 if blank_count == 0:
                     blank_start = i
                 blank_count += 1
@@ -141,13 +186,19 @@ class Linter:
 
         return issues
 
-    def _check_indentation(self, filepath: str, lines: List[str]) -> List[LintIssue]:
+    def _check_indentation(
+        self,
+        filepath: str,
+        lines: List[str],
+        protected: Optional[Set[int]] = None,
+    ) -> List[LintIssue]:
+        protected = protected or set()
         issues = []
         indent_size = self.config['indent_size']
         use_tabs = self.config['tab_indent']
 
         for i, line in enumerate(lines, 1):
-            if not line.strip():
+            if i in protected or not line.strip():
                 continue
 
             leading = len(line) - len(line.lstrip())
@@ -198,8 +249,13 @@ class Linter:
         return []
 
     def _in_hidden_dir(self, filepath: Path) -> bool:
+        """True for files under hidden dirs or build artifact dirs."""
         for part in filepath.parts:
             if part.startswith('.') and part not in ('.', '..'):
+                return True
+            if part in SKIP_DIR_NAMES:
+                return True
+            if part.startswith(SKIP_DIR_PREFIXES):
                 return True
         return False
 
@@ -329,12 +385,18 @@ class Linter:
             return 0, []
 
         lines = content.split('\n')
+        protected = self._protected_lines(content)
         fixed = []
         fixes_applied = []
         indent_size = self.config['indent_size']
         use_tabs = self.config['tab_indent']
 
         for i, line in enumerate(lines):
+            if i + 1 in protected:
+                # Inside a multiline string: content is data, never
+                # rewrite it (stripping/reindenting would corrupt it).
+                fixed.append(line)
+                continue
             original = line
             if line.rstrip() != line:
                 line = line.rstrip()
@@ -366,8 +428,11 @@ class Linter:
         compressed = []
         blank_count = 0
 
-        for line in result_lines:
-            if not line.strip():
+        # Line numbers are unchanged so far (fixes above are 1:1), so the
+        # protected set still applies: blank lines inside multiline
+        # strings are content and must never be dropped.
+        for idx, line in enumerate(result_lines, 1):
+            if not line.strip() and idx not in protected:
                 blank_count += 1
                 if blank_count <= max_blank:
                     compressed.append(line)
